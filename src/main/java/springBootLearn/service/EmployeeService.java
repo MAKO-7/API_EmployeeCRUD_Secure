@@ -1,6 +1,10 @@
 package springBootLearn.service;
 
-import lombok.Data;
+
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -9,13 +13,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.server.ResponseStatusException;
 import springBootLearn.DTO.*;
 import springBootLearn.Mapper.EmployeeMapper;
 import springBootLearn.model.Employee;
 import springBootLearn.model.Role;
 import springBootLearn.repository.EmployeeRepository;
+import springBootLearn.security.EmployeePrincipal;
+import springBootLearn.security.JwtUtils;
 
 @Service
 public class EmployeeService {
@@ -27,6 +32,12 @@ public class EmployeeService {
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    JwtUtils jwtUtils;
 
     public EmployeeDTO getEmployee(final String employeeEmail){
         Employee employee = employeeRepository.findByEmail(employeeEmail).orElseThrow(
@@ -75,6 +86,45 @@ public class EmployeeService {
         employeeMapper.updatePassword(employeepassworddto, employee);
         employeeRepository.save(employee);
     }
+
+    public void generateAndSendOtpCode(final String email){
+        Instant now = Instant.now();
+        Employee employee = employeeRepository.findByEmail(email).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request")
+        );
+        SecureRandom random = new SecureRandom();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm");
+        int code = 100000 + random.nextInt(900000);
+        String otpCode = String.valueOf(code);
+
+        employee.setOtpCode(otpCode);
+        employee.setOtpExpirationDate(LocalDateTime.now().plusMinutes(5));
+        employeeRepository.save(employee);
+
+        emailService.sendEmail(
+                email,
+                "Code de validation",
+                "Bonjour "+employee.getFirstName()+" Vous avez assayé de vous connecter sur cipestudio.com le " +
+                        LocalDateTime.now().format(formatter)+ ". Voici votre code de validation: "+ otpCode);
+    }
+
+    public String validateOtpCode(OtpValidationDTO otpvalidationdto){
+        Employee employee = employeeRepository.findByEmail(otpvalidationdto.getEmail()).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request")
+        );
+        if(employee.getOtpCode() == null || employee.getOtpExpirationDate() == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bad Request");
+        }
+        if(LocalDateTime.now().isAfter(employee.getOtpExpirationDate())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Otp code has expired");
+        }
+        if(!employee.getOtpCode().equals(otpvalidationdto.getOtpCode())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Otp code mismatch");
+        }
+
+        return jwtUtils.generateToken(new EmployeePrincipal(employee));
+    }
+
 
 }
 

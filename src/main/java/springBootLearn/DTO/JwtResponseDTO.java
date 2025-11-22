@@ -1,9 +1,9 @@
 package springBootLearn.DTO;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 @AllArgsConstructor
 public class JwtResponseDTO {
     private final String token;

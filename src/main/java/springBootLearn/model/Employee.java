@@ -1,13 +1,12 @@
 package springBootLearn.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import lombok.ToString;
+import java.time.LocalDateTime;
 
 @ToString(exclude = "password")
-@Getter
-@Setter
+@Data
 @Entity
 @Table(name = "employees")
 public class Employee {
@@ -27,4 +26,10 @@ public class Employee {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Column(name = "otp_code")
+    private String otpCode;
+
+    @Column(name = "otp_expiration_date")
+    private LocalDateTime otpExpirationDate;
 }

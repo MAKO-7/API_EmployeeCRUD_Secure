@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import springBootLearn.DTO.*;
 import springBootLearn.security.EmployeePrincipal;
 import springBootLearn.security.JwtUtils;
+import springBootLearn.service.EmailService;
 import springBootLearn.service.EmployeeService;
 
 import javax.swing.*;
@@ -34,6 +36,9 @@ public class EmployeeController {
 
     @Autowired
     private UserDetailsService userDetailsService;
+
+    @Autowired
+    private EmailService emailService;
     /**
      * Read - Get all employees
      * @return - An Iterable object of Employee fulfilled
@@ -109,7 +114,7 @@ public class EmployeeController {
      * @return - Status code
      */
     @PostMapping("/employeeConnect")
-    public ResponseEntity<JwtResponseDTO> authenticateEmployee(
+    public ResponseEntity<String> authenticateEmployee(
             @Valid @RequestBody EmployeeConnectDTO employeeConnectDTO){
             try {
                 Authentication authentication = authenticationManager.authenticate(
@@ -117,12 +122,25 @@ public class EmployeeController {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 EmployeePrincipal employeePrincipal = (EmployeePrincipal) authentication.getPrincipal();
-                String jwt = jwtUtils.generateToken(employeePrincipal);
+//                String jwt = jwtUtils.generateToken(employeePrincipal);
+                employeeService.generateAndSendOtpCode(employeePrincipal.getUsername());
+                return ResponseEntity.ok().build();
 
-                return ResponseEntity.ok(new JwtResponseDTO(jwt));
-            }catch (org.springframework.security.core.AuthenticationException e) {
+//                return ResponseEntity.ok(new JwtResponseDTO(jwt));
+            }catch (AuthenticationException e) {
                 return ResponseEntity.badRequest().build();
             }
+    }
+
+    @PostMapping("/employeeValidateOtpCode")
+    public ResponseEntity<JwtResponseDTO> validateOtpCode(@Valid @RequestBody OtpValidationDTO otpValidationDTO){
+        String token = employeeService.validateOtpCode(otpValidationDTO);
+        return ResponseEntity.ok(new JwtResponseDTO(token));
+    }
+
+    @GetMapping("/testSendEmail")
+    public void testSendEmail(){
+        emailService.sendEmail("k","k","k");
     }
 
 }
