@@ -94,8 +94,8 @@ public class EmployeeService {
         );
         SecureRandom random = new SecureRandom();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm");
-        int code = 100000 + random.nextInt(900000);
-        String otpCode = String.valueOf(code);
+        int code = random.nextInt(1000000);
+        String otpCode = String.format("%06d", code);
 
         employee.setOtpCode(otpCode);
         employee.setOtpExpirationDate(LocalDateTime.now().plusMinutes(5));
