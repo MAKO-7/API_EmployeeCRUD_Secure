@@ -138,9 +138,4 @@ public class EmployeeController {
         return ResponseEntity.ok(new JwtResponseDTO(token));
     }
 
-    @GetMapping("/testSendEmail")
-    public void testSendEmail(){
-        emailService.sendEmail("k","k","k");
-    }
-
 }

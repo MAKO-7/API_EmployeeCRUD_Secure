@@ -121,6 +121,9 @@ public class EmployeeService {
         if(!employee.getOtpCode().equals(otpvalidationdto.getOtpCode())){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Otp code mismatch");
         }
+        employee.setOtpCode(null);
+        employee.setOtpExpirationDate(null);
+        employeeRepository.save(employee);
 
         return jwtUtils.generateToken(new EmployeePrincipal(employee));
     }
